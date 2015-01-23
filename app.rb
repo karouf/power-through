@@ -2,6 +2,7 @@ require 'sinatra'
 require 'csv'
 require 'gsl'
 require 'json'
+require 'date'
 require 'pp'
 
 get '/' do
@@ -9,20 +10,73 @@ get '/' do
 end
 
 get '/aged' do
+  erb :aged
+end
+
+get '/agedjson' do
+  show_max = true
+
   exercises = []
   Dir.new('data/all').each do |entry|
     if File.file?("data/all/#{entry}")
-      CSV.foreach("data/all/#{entry}", headers: true, return_headers: false) do |row|
-        exercise = exercises.select{ |e| e[:name] == row[3] }.first
-        if exercise.nil?
-          exercise = { name: row[3], velocity: { peak: { max: {}, all: [] }, avg: { max: {}, all: [] } }, load: { peak: { max: {}, all: [] }, avg: { max: {}, all: [] } } }
-          exercises << exercise
-        end
+      match = entry.match(/.*([0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2})\.csv$/)
 
-        # Store data points with data
+      if match[1]
+        date = DateTime.strptime(match[1], '%Y-%m-%d_%H-%M')
+
+        CSV.foreach("data/all/#{entry}", headers: true, return_headers: false) do |row|
+          exercise = exercises.select{ |e| e[:name] == row[3] }.first
+          if exercise.nil?
+            exercise = { name: row[3], max: [], avg: [] }
+            exercises << exercise
+          end
+
+          # Store data points with data
+          exercise[:max] << { load: row[4], velocity: row[12], force: row[10], power: row[11], date: date.strftime('%Y-%m-%dT%H:%M:%S') }
+          exercise[:avg] << { load: row[4], velocity: row[9], force: row[7], power: row[8], date: date.strftime('%Y-%m-%dT%H:%M:%S') }
+        end
       end
     end
   end
+
+  exos = []
+  exercises.each do |exercise|
+    exo = {}
+    exo[:name] = exercise[:name]
+    exo[:graphs] = []
+
+    vel_force_data = []
+    if show_max
+      exercise[:max].each do |v|
+        vel_force_data << [v[:velocity], v[:force], v[:date]]
+      end
+    else
+      exercise[:avg].each do |v|
+        vel_force_data << [v[:velocity], v[:force], v[:date]]
+      end
+    end
+
+    vel_power_data = []
+    if show_max
+      exercise[:max].each do |v|
+        vel_power_data << [v[:velocity], v[:power], v[:date]]
+      end
+    else
+      exercise[:avg].each do |v|
+        vel_power_data << [v[:velocity], v[:power], v[:date]]
+      end
+    end
+
+    exo[:graphs] << { title: 'Velocity-force aged data',
+                      x_axis: 'Velocity (m/s)',
+                      y_axis: 'Force (N)',
+                      data: vel_force_data
+                    }
+
+    exos << exo
+  end
+
+  exos.to_json
 end
 
 get '/data' do
