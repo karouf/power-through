@@ -1,0 +1,36 @@
+path {
+  stroke: steelblue;
+  stroke-width: 1;
+  fill: none;
+}                                            }
+
+.axis {
+  shape-rendering: crispEdges;
+}
+
+.x.axis .tick line {
+  stroke-opacity: .5;
+  stroke: lightgrey;
+  stroke-width: 1;
+}
+
+.y.axis .tick line {
+  stroke-opacity: .3;
+}
+
+.y.axis line, .y.axis path, .x.axis path {
+  fill: none;
+  stroke: #000;
+}
+
+div.exercise {
+  display: none;
+}
+
+div.exercise.visible {
+  display: block;
+}
+
+.highlight {
+  fill: rgba(70, 130, 180, 0.5);
+}
